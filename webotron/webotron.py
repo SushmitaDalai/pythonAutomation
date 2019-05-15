@@ -33,6 +33,7 @@ def set_up_bucket(bucket):
     s3_bucket=bucket_manager.init_bucket(bucket)
     bucket_manager.defn_policy(s3_bucket)
     bucket_manager.enable_website(s3_bucket)
+    print(bucket_manager.get_url(s3_bucket))
 
 
 @cli.command('sync')
