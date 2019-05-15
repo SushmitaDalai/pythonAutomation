@@ -1,6 +1,8 @@
 import boto3
 import click
 from botocore.exceptions import ClientError
+from pathlib import Path
+import mimetypes
 
 session=boto3.Session(profile_name='pythonAutomation')
 s3=session.resource('s3')
@@ -52,6 +54,25 @@ def set_up_bucket(bucket):
     ws.put(WebsiteConfiguration={'IndexDocument':{'Suffix':'index.html'}})
     return
 
+@cli.command('sync')
+@click.argument('pathname', type=click.Path(exists=True))
+@click.argument('bucket_name')
+def sync(pathname,bucket_name):
+    "sync contents of pathname to bucket"
+    s3_bucket=s3.Bucket(bucket_name)
+    root=Path(pathname).expanduser().resolve()
+    def handle_dir(target):
+        for p in target.iterdir():
+            if p.is_dir():
+                handle_dir(p)
+            if p.is_file():
+                upload_file(s3_bucket,str(p),str(p.relative_to(root)))
+
+    handle_dir(root)
+
+def upload_file(bucket,path,key):
+    content_type=mimetypes.guess_type(key)[0] or 'text/plain'
+    bucket.upload_file(path,key,ExtraArgs={'ContentType':content_type})
 
 if __name__=='__main__':
     cli()

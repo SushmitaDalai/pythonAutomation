@@ -10,3 +10,4 @@ current features:
 list buckets
 list objects in the buckets
 create and set up bucket
+sync bucket tree to bucket
