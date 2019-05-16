@@ -4,9 +4,11 @@ from botocore.exceptions import ClientError
 from pathlib import Path
 import mimetypes
 from bucket import BucketManager
+from domain import DomainManager
 
 session=boto3.Session(profile_name='pythonAutomation')
 bucket_manager=BucketManager(session)   #object of class
+domain_manager=DomainManager(session)
 
 @click.group()
 def cli():
@@ -42,6 +44,14 @@ def set_up_bucket(bucket):
 def sync(pathname,bucket_name):
     "sync contents of pathname to bucket"
     bucket_manager.sync(pathname,bucket_name)
+
+@cli.command('setup-domain')
+@click.argument('domain-name')
+@click.argument('bucket-name')
+def setup_domain(domain_name,bucket_name):
+    """configure domain to point to bucket"""
+    zone=domain_manager.find_hosted_zone(domain_name) or domain_manager.create_hostedzone(domain_name)
+    print(zone)
 
 
 if __name__=='__main__':
