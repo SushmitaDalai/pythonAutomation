@@ -5,10 +5,14 @@ from pathlib import Path
 import mimetypes
 from bucket import BucketManager
 from domain import DomainManager
+from certificate import CertificateManager
+from cloudfront import CDNManager
 
 session=boto3.Session(profile_name='pythonAutomation')
 bucket_manager=BucketManager(session)   #object of class
 domain_manager=DomainManager(session)
+cert_manager=CertificateManager(session)
+cdn_manager=CDNManager(session)
 
 @click.group()
 def cli():
@@ -53,6 +57,37 @@ def setup_domain(domain_name,bucket_name):
     zone=domain_manager.find_hosted_zone(domain_name) or domain_manager.create_hostedzone(domain_name)
     print(zone)
 
+@cli.command('find-cert')
+@click.argument('domain')
+def get_cert(domain):
+    """get certificates for the domain name"""
+    print(cert_manager.find_certificate(domain))
+
+
+@cli.command('setup-cdn')
+@click.argument('domain')
+@click.argument('bucket')
+def setup_cdn(domain, bucket):
+    """Set up CloudFront CDN for DOMAIN pointing to BUCKET."""
+    dist = cdn_manager.find_matching_dist(domain)
+
+    if not dist:
+        cert = cert_manager.find_certificate(domain)
+        if not cert:  # SSL is not optional at this time
+            print("Error: No matching cert found.")
+            return
+
+        dist = cdn_manager.create_dist(domain, cert)
+        print("Waiting for distribution deployment...")
+        cdn_manager.awaiting_deploy(dist)
+
+    zone = domain_manager.find_hosted_zone(domain) \
+        or domain_manager.create_hosted_zone(domain)
+
+    domain_manager.create_cf_domain_record(zone, domain, dist['DomainName'])
+    print("Domain configured: https://{}".format(domain))
+
+    return
 
 if __name__=='__main__':
     cli()
