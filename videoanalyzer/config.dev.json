@@ -2,6 +2,6 @@
   "videolyzer": {
     "profile":"pythonAutomation",
     "videos_bucket":"sushvideolyzer",
-    "videos_table":""
+    "videos_table":"videolyzer-videos-dev"
   }
 }
